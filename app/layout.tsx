@@ -7,9 +7,24 @@ const sans = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
+import { Viewport } from "next";
+
 export const metadata: Metadata = {
   title: "Closer",
   description: "Votre espace privé à deux",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Closer",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#FDF8F5",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
