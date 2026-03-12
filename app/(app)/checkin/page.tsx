@@ -81,6 +81,27 @@ export default function CheckinPage() {
       return;
     }
 
+    // Notification Push Web
+    const { data: partnerMember } = await supabase
+      .from('couple_members').select('user_id').eq('couple_id', coupleId).neq('user_id', user.id).single();
+      
+    if (partnerMember) {
+      // Pour une bonne UX, on va chercher l'emoji/label pour que la notification soit claire
+      const moodInfo = MOODS.find(m => m.key === selectedMood);
+      const moodText = moodInfo ? `${moodInfo.emoji} ${moodInfo.label}` : "son humeur";
+
+      fetch('/api/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: "Nouveau Check-in 🌿",
+          message: `Votre partenaire a partagé ${moodText}`,
+          targetUserId: partnerMember.user_id,
+          url: "/checkin"
+        })
+      }).catch(console.error);
+    }
+
     setMyCheckin({ mood: selectedMood, message: message.trim() });
     setState("done");
     setSubmitting(false);

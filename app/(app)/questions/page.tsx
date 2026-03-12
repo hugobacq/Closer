@@ -113,6 +113,23 @@ export default function QuestionsPage() {
       return;
     }
 
+    // Notification Push Web
+    const { data: partnerMember } = await supabase
+      .from('couple_members').select('user_id').eq('couple_id', coupleId).neq('user_id', user.id).single();
+      
+    if (partnerMember) {
+      fetch('/api/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: "Nouvelle Réponse 💭",
+          message: "Votre partenaire a répondu à la question du jour !",
+          targetUserId: partnerMember.user_id,
+          url: "/questions"
+        })
+      }).catch(console.error);
+    }
+
     setMyAnswer(input.trim());
     setSubmitting(false);
   }

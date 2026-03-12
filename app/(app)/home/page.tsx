@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef, Suspense } from "react";
+import PushNotificationManager from "@/components/PushNotificationManager";
 import { createClient } from "@/lib/supabase/client";
 
 type CheckinData = { mood: string; message: string } | null;
@@ -237,6 +238,9 @@ function HomeContent() {
             <Image src="/logo.png" alt="Closer" width={128} height={128} className="w-full h-full object-cover scale-[1.6] translate-y-[8%]" />
           </div>
         </div>
+
+        {/* Gestionnaire Web Push */}
+        <PushNotificationManager />
 
         {/* Countdown — cliquable */}
         <button

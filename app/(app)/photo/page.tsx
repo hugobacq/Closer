@@ -156,7 +156,28 @@ export default function PhotoPage() {
         throw new Error("Erreur base: " + dbError.message);
       }
 
-      // 4. Recharger la page
+      // 4. Notification Push au partenaire
+      const { data: partnerMember } = await supabase
+        .from('couple_members')
+        .select('user_id')
+        .eq('couple_id', coupleId)
+        .neq('user_id', userId)
+        .single();
+        
+      if (partnerMember) {
+        fetch('/api/push/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: "Closer",
+            message: "Votre partenaire a posté sa photo du jour 📸",
+            targetUserId: partnerMember.user_id,
+            url: "/photo"
+          })
+        }).catch(console.error);
+      }
+
+      // 5. Recharger la page
       await loadData();
       
     } catch (err: any) {
@@ -179,6 +200,18 @@ export default function PhotoPage() {
     // Envoi en BDD en arrière-plan
     const supabase = createClient();
     await supabase.from("daily_photos").update({ liked: true }).eq("id", partnerPhoto.id);
+
+    // Notification Push
+    fetch('/api/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: "Nouveau Cœur ❤️",
+        message: "Votre partenaire a adoré votre photo du jour !",
+        targetUserId: partnerPhoto.user_id, // le créateur de la photo
+        url: "/photo"
+      })
+    }).catch(console.error);
   }
 
   if (loading) {
