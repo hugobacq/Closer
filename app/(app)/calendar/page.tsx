@@ -391,8 +391,8 @@ export default function CalendarPage() {
                 <button onClick={() => setModal({ isOpen: false, event: null })} className="flex-1 py-3 text-stone-500 font-semibold hover:bg-stone-50 rounded-xl transition-colors">
                   Annuler
                 </button>
-                {modal.event && (
-                  <button onClick={() => deleteEvent(modal.event!.id)} className="flex-1 py-3 text-red-500 font-semibold hover:bg-red-50 rounded-xl transition-colors">
+                {modal.event?.id && (
+                  <button onClick={() => deleteEvent(modal.event!.id as string)} className="flex-1 py-3 text-red-500 font-semibold hover:bg-red-50 rounded-xl transition-colors">
                     Supprimer
                   </button>
                 )}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type CheckinData = { mood: string; message: string } | null;
@@ -71,7 +71,7 @@ function formatDate(date: Date) {
   return date.toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
 }
 
-export default function HomePage() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isDemo = searchParams.get("demo") === "true";
@@ -406,5 +406,13 @@ export default function HomePage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#FDF8F5] flex items-center justify-center">Chargement...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
