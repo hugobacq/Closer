@@ -36,6 +36,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Préparer le payload du Service Worker
+    // Attention: sw.js attend { body: string, icon: string, title?: string, url?: string }
     const payload = JSON.stringify({
       title: title || "Closer",
       body: message || "Vous avez une nouvelle notification.",
@@ -43,12 +44,15 @@ export async function POST(req: Request) {
       icon: "/logo.png"
     });
 
+    console.log(`[PUSH] Tentative d'envoi vers ${targetUserId}. ${subscriptions.length} abonnements trouvés.`);
+
     let deliveredCount = 0;
 
     // 3. Envoyer le Push à chaque appareil de l'utilisateur
     const sendPromises = subscriptions.map(async (sub) => {
       try {
-        await webpush.sendNotification(
+        console.log(`[PUSH] Envoi vers Endpoint: ${sub.endpoint.substring(0, 30)}...`);
+        const result = await webpush.sendNotification(
           {
             endpoint: sub.endpoint,
             keys: {
@@ -58,23 +62,25 @@ export async function POST(req: Request) {
           },
           payload
         );
+        console.log(`[PUSH] Succès (${result.statusCode}) pour Endpoint: ${sub.endpoint.substring(0, 30)}...`);
         deliveredCount++;
       } catch (err: any) {
         // L'abonnement a peut-être expiré sur l'appareil du partenaire
         if (err.statusCode === 404 || err.statusCode === 410) {
-          console.log("Subscription expired, deleting...", sub.endpoint);
+          console.warn("[PUSH] Expired subscription, deleting...", sub.endpoint);
           await supabase.from("push_subscriptions").delete().eq("id", sub.id);
         } else {
-          console.error("Erreur d'envoi web-push :", err);
+          console.error("[PUSH] Erreur web-push :", err);
         }
       }
     });
 
     await Promise.all(sendPromises);
+    console.log(`[PUSH] Processus terminé. Délivrés : ${deliveredCount}/${subscriptions.length}`);
 
     return NextResponse.json({ success: true, delivered: deliveredCount });
   } catch (err) {
-    console.error("Error in /api/push/send:", err);
+    console.error("[PUSH] Critical Error in /api/push/send:", err);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
