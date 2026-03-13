@@ -26,6 +26,7 @@ export default function CheckinPage() {
   const [myCheckin, setMyCheckin] = useState<{ mood: string; message: string } | null>(null);
   const [partnerCheckin, setPartnerCheckin] = useState<{ mood: string; message: string } | null>(null);
   const [coupleId, setCoupleId] = useState<string | null>(null);
+  const [myName, setMyName] = useState("Votre partenaire");
 
   useEffect(() => {
     async function load() {
@@ -33,13 +34,20 @@ export default function CheckinPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
 
-      // Obtenir couple_id
+      // Obtenir couple_id et Mon Prénom
       const { data: member } = await supabase
         .from("couple_members")
         .select("couple_id")
         .eq("user_id", user.id)
         .single();
       if (member) setCoupleId(member.couple_id);
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", user.id)
+        .single();
+      if (profile) setMyName(profile.name);
 
       // Charger les check-ins du jour
       const { data: checkins } = await supabase.rpc("get_today_checkins");
@@ -95,7 +103,7 @@ export default function CheckinPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: "Nouveau Check-in 🌿",
-          message: `Votre partenaire a partagé ${moodText}`,
+          message: `${myName} a partagé ${moodText}`,
           targetUserId: partnerMember.user_id,
           url: "/checkin"
         })

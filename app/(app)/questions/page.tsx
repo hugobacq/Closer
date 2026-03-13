@@ -60,6 +60,7 @@ export default function QuestionsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [coupleId, setCoupleId] = useState<string | null>(null);
+  const [myName, setMyName] = useState("Votre partenaire");
 
   const today = getTodayQuestion();
 
@@ -67,6 +68,11 @@ export default function QuestionsPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
+
+    // Mon profil pour le prénom
+    const { data: myProfile } = await supabase
+      .from("profiles").select("name").eq("id", user.id).single();
+    if (myProfile?.name) setMyName(myProfile.name);
 
     // Couple
     const { data: member } = await supabase
@@ -123,7 +129,7 @@ export default function QuestionsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: "Nouvelle Réponse 💭",
-          message: "Votre partenaire a répondu à la question du jour !",
+          message: `${myName} a répondu à la question du jour !`,
           targetUserId: partnerMember.user_id,
           url: "/questions"
         })

@@ -21,6 +21,7 @@ export default function PhotoPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [coupleId, setCoupleId] = useState<string | null>(null);
   const [partnerName, setPartnerName] = useState("ton/ta partenaire");
+  const [myName, setMyName] = useState("Votre partenaire");
 
   const [myPhoto, setMyPhoto] = useState<DailyPhoto | null>(null);
   const [partnerPhoto, setPartnerPhoto] = useState<DailyPhoto | null>(null);
@@ -36,6 +37,11 @@ export default function PhotoPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setUserId(user.id);
+
+    // Mon Profil
+    const { data: myProfile } = await supabase
+      .from("profiles").select("name").eq("id", user.id).single();
+    if (myProfile?.name) setMyName(myProfile.name);
 
     // Couple ID & Partenaire
     const { data: member } = await supabase
@@ -170,7 +176,7 @@ export default function PhotoPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: "Closer",
-            message: "Votre partenaire a posté sa photo du jour 📸",
+            message: `${myName} a posté sa photo du jour 📸`,
             targetUserId: partnerMember.user_id,
             url: "/photo"
           })
@@ -207,7 +213,7 @@ export default function PhotoPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: "Nouveau Cœur ❤️",
-        message: "Votre partenaire a adoré votre photo du jour !",
+        message: `${myName} a adoré votre photo du jour !`,
         targetUserId: partnerPhoto.user_id, // le créateur de la photo
         url: "/photo"
       })
