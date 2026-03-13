@@ -24,67 +24,68 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
-  // Routes toujours accessibles
-  const isPublic = pathname === '/' ||
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/signup') ||
-    pathname.startsWith('/join')
+  const isPublicRoute = pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/join')
 
-  // Non connecté → /login
+  // Redirections helpers qui conservent les cookies rafraîchis de Supabase
+  const redirect = (path: string) => {
+    const url = request.nextUrl.clone()
+    url.pathname = path
+    const res = NextResponse.redirect(url)
+    // IMPORTANT : On transmet les nouveaux cookies (refresh token) au redirect
+    supabaseResponse.cookies.getAll().forEach(cookie => {
+      res.cookies.set(cookie.name, cookie.value)
+    })
+    return res
+  }
+
+  // 1. Non connecté → Rediriger vers /login sauf si la route est publique
   if (!user) {
-    if (!isPublic) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
+    if (!isPublicRoute) {
+      return redirect('/login')
     }
     return supabaseResponse
   }
 
+  // L'utilisateur EST connecté.
+
+  // S'il est sur une page de login ou landing, l'envoyer vers sa session active
+  if (isPublicRoute) {
+    return redirect('/home')
+  }
+
   const isOnboarding = pathname.startsWith('/onboarding')
 
-  // Vérifier le profil (avec fallback si table absente)
+  // 2. Vérifier si le profil est complété
   let profileComplete = false
   try {
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('profile_complete')
-      .eq('id', user.id)
-      .single()
+      .from('profiles').select('profile_complete').eq('id', user.id).single()
     profileComplete = profile?.profile_complete === true
   } catch {
     return supabaseResponse
   }
 
-  // Profil incomplet → /onboarding/profile
-  if (!profileComplete && !isOnboarding && !isPublic) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/onboarding/profile'
-    return NextResponse.redirect(url)
+  // Profil incomplet et on ne s'y trouve pas déjà → /onboarding/profile
+  if (!profileComplete && !isOnboarding) {
+    return redirect('/onboarding/profile')
   }
 
-  // Déjà sur /onboarding/profile avec profil complet → /onboarding/couple
+  // Déjà sur onboarding mais profil fini → /onboarding/couple
   if (profileComplete && pathname === '/onboarding/profile') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/onboarding/couple'
-    return NextResponse.redirect(url)
+    return redirect('/onboarding/couple')
   }
 
-  // Vérifier le couple (seulement si profil complet et route protégée)
-  if (profileComplete && !isOnboarding && !isPublic) {
+  // 3. Vérifier s'il a rejoint un couple
+  if (profileComplete && !isOnboarding) {
     try {
       const { data: member } = await supabase
-        .from('couple_members')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
+        .from('couple_members').select('id').eq('user_id', user.id).maybeSingle()
 
       if (!member) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/onboarding/couple'
-        return NextResponse.redirect(url)
+        return redirect('/onboarding/couple')
       }
     } catch {
-      // Table couple_members pas encore créée → laisser passer
+      // Si la table n'existe pas encore
     }
   }
 
